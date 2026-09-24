@@ -2,7 +2,6 @@ package compute
 
 import (
 	"errors"
-	"log"
 	"strings"
 
 	"go.uber.org/zap"
@@ -11,14 +10,14 @@ import (
 var (
 	errInvalidQuery     = errors.New("empty query")
 	errInvalidCommand   = errors.New("invalid command")
-	errInvalidArguments = errors.New("invalid arguments")
+	errInvalidArguments = errors.New("invalid arguments amount")
 )
 
 type Compute struct {
-	logger *zap.Logger
+	Logger *zap.Logger
 }
 type Query struct {
-	Command   string
+	Code      int
 	Arguments []string
 }
 
@@ -28,35 +27,34 @@ var commands = map[string]int{
 	"DEL": 3,
 }
 
-func CreateCompute(logger *zap.Logger) Compute {
-	if logger == nil {
-		log.Fatal("logger structer is epmty")
-
-	}
-
-	compute := Compute{
-		logger: logger,
-	}
-	return compute
-
+var needArguments = map[int]int{
+	1: 2,
+	2: 1,
+	3: 1,
 }
 
-func (d *Compute) Parse(query string) (Query, error) {
+func (d *Compute) Parse(query []byte) (Query, error) {
 
-	tokens := strings.Fields(query)
+	tokens := strings.Fields(string(query))
 
 	if len(tokens) == 0 {
-		d.logger.Debug("No Commands were endered")
+		d.Logger.Debug("No Commands were endered")
 		return Query{}, errInvalidQuery
 	}
 
 	if _, ok := commands[tokens[0]]; !ok {
-		d.logger.Debug("Wrong Command was entered")
+		d.Logger.Debug("Wrong Command was entered")
 		return Query{}, errInvalidCommand
 	}
 
+	code := commands[tokens[0]]
+
 	if len(tokens) < 2 {
-		d.logger.Debug("No arguments were provided")
+		d.Logger.Debug("No arguments were provided")
+		return Query{}, errInvalidArguments
+	}
+
+	if needArguments[code] != len(tokens)-1 {
 		return Query{}, errInvalidArguments
 	}
 
@@ -66,7 +64,7 @@ func (d *Compute) Parse(query string) (Query, error) {
 	}
 
 	return Query{
-		Command:   tokens[0],
+		Code:      commands[tokens[0]],
 		Arguments: arguments}, nil
 
 }
